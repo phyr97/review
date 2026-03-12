@@ -1,0 +1,9 @@
+{
+  "name": "review",
+  "version": "0.1.0",
+  "description": "Multi-mode code review with agent-based analysis, false-positive filtering, and confidence scoring",
+  "author": {
+    "name": "MoinDev"
+  },
+  "keywords": ["code-review", "diff", "quality"]
+}
