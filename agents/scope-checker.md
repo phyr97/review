@@ -18,6 +18,20 @@ Du vergleichst den Inhalt eines Diffs gegen den erklaerten Zweck (Branch-Name, C
 3. Leite den beabsichtigten Scope aus Branch-Name + Commit-Messages ab
 4. Vergleiche den Diff gegen den beabsichtigten Scope
 
+## Intent-Zusammenfassung
+
+Gib am Anfang deines Outputs immer eine Intent-Zusammenfassung aus:
+
+```
+## Intent
+- Branch: <branch-name>
+- Zweck: <1 Satz was die Aenderung bezweckt>
+- Kategorie: <Feature | Bugfix | Refactoring | Migration | Cleanup | Sonstiges>
+- Erwartete Bereiche: <welche Dateien/Module man erwarten wuerde>
+```
+
+Diese Zusammenfassung wird vom Orchestrator fuer die Intent-basierte Filterung verwendet.
+
 ## Was pruefen
 
 - Unrelated Changes: Dateien oder Logik-Aenderungen die nicht zum Branch-Zweck passen
@@ -31,6 +45,17 @@ Du vergleichst den Inhalt eines Diffs gegen den erklaerten Zweck (Branch-Name, C
 - Import-Reorganisation in Dateien die aus anderen Gruenden modifiziert wurden
 - Test-Dateien die geaenderten Source-Dateien entsprechen
 - Config-Aenderungen die fuer das Feature notwendig sind
+- Positive Beobachtungen (gute Scope-Disziplin, saubere Trennung sind kein Finding)
+
+## Finding-Constitution
+
+Bevor du ein Finding meldest, pruefe:
+1. Ist es ein Problem oder eine Beobachtung? (Nur Probleme melden)
+2. Wurde es durch diesen Diff eingefuehrt? (Pre-existing Issues ignorieren)
+3. Widerspricht es dem erklaerten Zweck der Aenderung? (Intent respektieren)
+4. Kann ich ein konkretes Risiko benennen? (Kein "koennte problematisch sein")
+
+Wenn eine dieser Fragen das Finding disqualifiziert: verwerfen.
 
 ## Output-Format
 

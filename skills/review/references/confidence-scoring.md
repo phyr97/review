@@ -38,8 +38,8 @@ Jedes Finding bekommt einen Confidence-Score von 0 bis 100. Der Schwellenwert fu
 ## Schwellenwert-Anwendung
 
 - Score >= 75: In Output aufnehmen
-- Score 60-74: Nur aufnehmen wenn Evidenz-Staerke >= 30
-- Score < 60: Verwerfen
+- Score 65-74: Nur aufnehmen wenn Evidenz-Staerke >= 35
+- Score < 65: Verwerfen
 
 ## Beispiele
 

@@ -35,7 +35,9 @@ Diese Patterns duerfen NICHT als Finding gemeldet werden. Wenn ein Agent-Finding
 
 - Phoenix: Auto-generierte Migration-Timestamps, Default-Endpoint-Config, Standard-Router-Macros
 - Ecto: Standard Changeset-Pipe (cast |> validate), Schema-Macro-Calls
+- Ecto: UUID-Felder werden als Strings verglichen, das ist korrektes Verhalten (keine Binary-Vergleich-Warnung)
 - LiveView: mount/3 returning {:ok, socket}, handle_event/3 Pattern Matching
+- LiveView: LiveComponent-IDs sind pro Modul geschoped, keine Kollision zwischen verschiedenen Modulen
 - ExUnit: `use ExUnit.Case, async: true` Boilerplate, describe/test Nesting
 
 ## Pre-existing Issues
@@ -55,3 +57,13 @@ Diese Patterns duerfen NICHT als Finding gemeldet werden. Wenn ein Agent-Finding
 - Test-Setup das Produktionscode dupliziert (bewusste Isolation)
 - Mock/Stub-Implementierungen die Validierung ueberspringen
 - Hardcodierte Testdaten (Daten, IDs, Strings)
+
+## Positive Beobachtungen
+
+Folgendes sind keine Findings, auch wenn sie bemerkenswert sind:
+
+- Vorhandene Tests fuer neue Features (das ist erwartet, kein Finding)
+- Reversible Migrationen (das ist gute Praxis, kein Problem)
+- Saubere Architektur oder gute Modul-Trennung (Lob gehoert nicht ins Review)
+- Konsistente Nutzung bestehender Patterns (Konformitaet ist kein Finding)
+- Umfassende Error-Handling-Abdeckung (das ist korrekt, nicht reportwuerdig)

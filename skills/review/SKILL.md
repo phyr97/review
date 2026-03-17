@@ -39,6 +39,25 @@ Optionalen Fokus-Text extrahieren: alles in $ARGUMENTS was in Anfuehrungszeichen
 
 Das passende Git-Diff-Kommando aus Phase 1 ausfuehren. Wenn der Diff leer ist, "Keine Aenderungen gefunden." melden und stoppen.
 
+## Phase 2.5: Intent-Erkennung
+
+Den Zweck der Aenderung ermitteln bevor Agents gespawnt werden:
+
+1. Branch-Name parsen: `git rev-parse --abbrev-ref HEAD`
+2. Commit-Messages sammeln: `git log --oneline <base>..HEAD`
+3. Intent-Kategorie bestimmen:
+   - `feature/`, `feat/`, `add-` -> Feature
+   - `fix/`, `bugfix/`, `hotfix/` -> Bugfix
+   - `refactor/`, `cleanup/`, `chore/` -> Refactoring
+   - `migration/`, `migrate-` -> Migration
+   - `remove/`, `delete/`, `drop-` -> Cleanup
+   - Sonst aus Commit-Messages ableiten
+4. Intent-Zusammenfassung formulieren: 1 Satz der beschreibt was die Aenderung bezweckt
+5. Intent-Kategorie und -Zusammenfassung speichern fuer Agent-Prompts und Synthese
+
+Beispiel: Branch `feature/multi-timer`, Commits "Add timer component", "Add timer tests"
+-> Kategorie: Feature, Zusammenfassung: "Fuegt Multi-Timer-Funktionalitaet hinzu"
+
 Diff-Groesse berechnen:
 ```bash
 git diff <args> --numstat | awk '{added+=$1; removed+=$2} END {print added+removed}'
@@ -106,6 +125,19 @@ Geaenderte Dateien: <Dateiliste>
 Fokus: <Fokus-Hint falls vorhanden, sonst "keiner">
 Stack: <erkannter Stack>
 Projekt-Root: <pwd>
+Intent: <Intent-Kategorie aus Phase 2.5>
+Intent-Beschreibung: <Intent-Zusammenfassung aus Phase 2.5>
+
+PFLICHT: Lies betroffene Dateien mit Read bevor du Findings meldest. Diff-Only-Findings sind ungueltig.
+
+Finding-Constitution (jedes Finding muss alle Punkte bestehen):
+1. Ist es ein Problem, nicht eine Beobachtung?
+2. Wurde es durch diesen Diff eingefuehrt?
+3. Wurde der tatsaechliche Code gelesen (nicht nur der Diff)?
+4. Respektiert es den Intent der Aenderung?
+5. Gibt es ein konkretes Fehlerszenario?
+6. Ist Datei:Zeile und Code-Pfad benannt?
+7. Ist es Kritik, nicht verstecktes Lob?
 
 Pruefe deinen Bereich gemaess deiner Agenten-Anleitung.
 Gib nur Findings zurueck, die ein Senior-Entwickler tatsaechlich ansprechen wuerde.
@@ -143,7 +175,15 @@ Alle Agents parallel spawnen mit `mode: "bypassPermissions"` und `run_in_backgro
 
 ## Phase 6: Synthese (Code Review)
 
-Alle Agent-Outputs einsammeln. Den dreischichtigen False-Positive-Filter anwenden:
+Alle Agent-Outputs einsammeln. Den vierschichtigen False-Positive-Filter anwenden:
+
+### Schicht 0: Intent-Filter
+Findings die den erklaerten Zweck der Aenderung kritisieren, verwerfen. Wenn die Aenderung z.B. ein Feature hinzufuegt und ein Finding bemängelt dass neuer Code hinzugefuegt wurde, ist das kein valides Finding. Die Intent-Zusammenfassung aus Phase 2.5 und die Intent-Zusammenfassung des Scope-Checkers (falls vorhanden) als Filter nutzen.
+
+Beispiele fuer Intent-Verwerfungen:
+- Cleanup-Branch entfernt Code -> "Code wurde entfernt" ist kein Finding
+- Feature-Branch fuegt neues Modul hinzu -> "Neues Modul ohne bestehende Tests" ist kein Finding wenn Tests dabei sind
+- Refactoring-Branch aendert Struktur -> "Struktur hat sich geaendert" ist kein Finding
 
 ### Schicht 1: Explizite False-Positive-Liste
 Findings gegen `references/false-positives.md` pruefen. Jedes Finding das einem gelisteten Pattern entspricht verwerfen.
@@ -156,9 +196,24 @@ Fuer jedes verbleibende Finding fragen: "Wuerde ein Senior-Entwickler das tatsae
 - Theoretische Probleme ohne konkretes Szenario in diesem Code
 
 ### Schicht 3: Confidence-Scoring
-Die Scoring-Rubrik aus `references/confidence-scoring.md` anwenden. Findings unter Schwellenwert 75 entfernen. Findings mit Score 60-74 nur behalten wenn Evidenz-Staerke >= 30.
+Die Scoring-Rubrik aus `references/confidence-scoring.md` anwenden. Findings unter Schwellenwert 75 entfernen. Findings mit Score 65-74 nur behalten wenn Evidenz-Staerke >= 35.
 
 Nach dem Filtern, Findings deduplizieren die mehrere Agents gemeldet haben (die Version mit der besten Evidenz behalten).
+
+### Strategische Stille
+
+Keine Findings ist ein valides und erwuenschtes Ergebnis. Wenn nach allen Filtern keine Findings uebrig bleiben, ist das ein Zeichen fuer sauberen Code, nicht fuer ein unzureichendes Review. Positive Beobachtungen (gute Tests, saubere Migration, konsistente Patterns) werden verworfen, nicht als Findings praesentiert. Lieber schweigen als ein fragwuerdiges Finding melden.
+
+## Phase 6.5: Self-Review (CoVe)
+
+Nach der Synthese durchlaeuft jedes ueberlebende Finding den Chain-of-Verification-Prozess (Details in `references/cove-process.md`):
+
+1. Fuer jedes Finding 3 Verifikationsfragen generieren die mit Read/Grep gegen den Code beantwortbar sind
+2. Jede Frage isoliert durch Code-Lektuere beantworten
+3. Finding nur behalten wenn mindestens 2 von 3 Fragen das Problem bestaetigen
+4. Nicht beantwortbare Fragen zaehlen als "nicht bestaetigt"
+
+Findings die den Self-Review nicht bestehen: stillschweigend verwerfen.
 
 Output mit `references/output-template.md` formatieren.
 
@@ -177,7 +232,7 @@ Dieselben Severity-Levels (Blocker/Warnung/Hinweis) verwenden, aber Text-Abschni
 
 ## Phase 8: Output
 
-Findings mit dem Output-Template praesentieren. Immer auf Deutsch.
+Findings mit dem Output-Template praesentieren. Immer auf Deutsch. Lieber schweigen als ein fragwuerdiges Finding melden. "Keine Review-Findings" ist ein vollstaendig akzeptables Ergebnis.
 
 Nach dem Praesentieren der Findings anbieten:
 ```
