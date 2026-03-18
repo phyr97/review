@@ -94,7 +94,7 @@ Dann in den Plan/Text-Review-Modus wechseln. Weiter zu Phase 7.
 
 ## Phase 5: Agent-Dispatch (Code Review)
 
-Lies `${CLAUDE_PLUGIN_ROOT}/skills/review/references/false-positives.md` und `${CLAUDE_PLUGIN_ROOT}/skills/review/references/confidence-scoring.md` vor dem Dispatch.
+Lies `${CLAUDE_SKILL_DIR}/references/false-positives.md` und `${CLAUDE_SKILL_DIR}/references/confidence-scoring.md` vor dem Dispatch.
 
 ### Kleiner Diff (<100 geaenderte Zeilen)
 

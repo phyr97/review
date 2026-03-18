@@ -1,6 +1,6 @@
 {
   "name": "review",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Multi-mode code review with agent-based analysis, false-positive filtering, and confidence scoring",
   "author": {
     "name": "phyr97"

@@ -5,6 +5,7 @@ model: sonnet
 tools: Read, Grep, Glob
 maxTurns: 8
 permissionMode: bypassPermissions
+effort: medium
 ---
 
 # Bug Scanner

@@ -5,6 +5,7 @@ model: haiku
 tools: Read, Grep, Glob, Bash(git:*)
 maxTurns: 8
 permissionMode: bypassPermissions
+effort: low
 ---
 
 # Scope Checker

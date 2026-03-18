@@ -1,6 +1,6 @@
 ---
 description: Review code diff, staged changes, commit, or plan/text
-argument-hint: [base-branch] [--staged] [--commit sha] [--files glob] ["focus"]
+argument-hint: "[base-branch] [--staged] [--commit sha] [--files glob] [\"focus\"]"
 allowed-tools: Read, Glob, Grep, Bash(git:*), Bash(wc:*), Bash(test:*), Bash(awk:*), Agent
 model: sonnet
 ---
