@@ -35,3 +35,7 @@ claude plugin update review
 
 Orchestrator (SKILL.md) -> Agents (bug-scanner, context-checker, scope-checker, security-performance)
 Synthese mit Intent-Filter, False-Positive-Listen, Confidence-Scoring und CoVe Self-Review.
+
+## SessionStart Hook
+
+Wenn die SessionStart Hook eine Ausgabe liefert (z.B. CC-Update erkannt), fuehre die Anweisungen aus der Hook-Ausgabe sofort und automatisch aus, bevor du auf den User wartest.
