@@ -81,6 +81,18 @@ Stack-Indikatoren im Projekt-Root pruefen:
 - `go.mod` vorhanden -> Go
 - `pyproject.toml` oder `requirements.txt` vorhanden -> Python
 
+Den erkannten Stack-Namen merken (`detected_stack`) — wird in Phase 5 und Phase 8 wieder verwendet.
+
+### Stack-Plugin-Mapping
+
+Zentrale Konstante (erweiterbar). Mappt erkannten Stack auf das empfohlene Stack-Plugin:
+
+| Erkannter Stack | Empfohlenes Plugin |
+|---|---|
+| Elixir/Phoenix | `elixir-phoenix` |
+
+(Andere Stacks: kein Mapping vorhanden, kein Hinweis. Tabelle bei Bedarf erweitern.)
+
 Fuer Elixir/Phoenix spezifisch:
 Versuche die elixir-phoenix Agents zu spawnen. Wenn der Spawn fehlschlaegt, sind sie nicht verfuegbar und die eigenen Agents werden verwendet. Kein expliziter Pfad-Check noetig, der Fehler ist die Erkennung.
 
@@ -95,6 +107,15 @@ Dann in den Plan/Text-Review-Modus wechseln. Weiter zu Phase 7.
 ## Phase 5: Agent-Dispatch (Code Review)
 
 Lies `${CLAUDE_SKILL_DIR}/references/false-positives.md` und `${CLAUDE_SKILL_DIR}/references/confidence-scoring.md` vor dem Dispatch.
+
+### Stack-Plugin-Spawn-Tracking
+
+Wenn der Stack aus Phase 3 ein Mapping in der Stack-Plugin-Tabelle hat (z.B. Elixir/Phoenix → `elixir-phoenix`):
+
+- Erster Spawn-Versuch eines Stack-Plugin-Agents (z.B. `elixir-phoenix:elixir-reviewer`) fehlschlaegt → Flag `stack_plugin_missing` auf den Plugin-Namen setzen (z.B. `"elixir-phoenix"`).
+- Spawn klappt → kein Flag, alles wie heute.
+
+Das Flag wird in Phase 8 (Output) ausgewertet.
 
 ### Kleiner Diff (<100 geaenderte Zeilen)
 
@@ -208,12 +229,17 @@ Keine Findings ist ein valides und erwuenschtes Ergebnis. Wenn nach allen Filter
 
 Nach der Synthese durchlaeuft jedes ueberlebende Finding den Chain-of-Verification-Prozess (Details in `references/cove-process.md`):
 
-1. Fuer jedes Finding 3 Verifikationsfragen generieren die mit Read/Grep gegen den Code beantwortbar sind
-2. Jede Frage isoliert durch Code-Lektuere beantworten
-3. Finding nur behalten wenn mindestens 2 von 3 Fragen das Problem bestaetigen
-4. Nicht beantwortbare Fragen zaehlen als "nicht bestaetigt"
+1. Fuer jedes Finding **3 Code-Verifikationsfragen + 1 Logik-Frage** generieren
+   - Code-Fragen: mit Read/Grep gegen den Code beantwortbar
+   - Logik-Frage: Steelman gegen das Finding ("Welche Alternativ-Erklaerung wuerde das Finding entkraeften?")
+2. Code-Fragen isoliert durch Lektuere beantworten, Logik-Frage durch explizite Steelman-Formulierung
+3. Entscheidung kumulativ:
+   - Code-Verifikation nicht bestanden (<2 von 3) → Finding verwerfen
+   - Code-Verifikation bestanden + Logik-Frage bestanden (Steelman bricht das Finding NICHT) → Finding bleibt
+   - Code-Verifikation bestanden + Logik-Frage entkraeftet (Steelman ist plausibel) → **Severity-Downgrade** um eine Stufe (Blocker→Warnung, Warnung→Hinweis, Hinweis→verwerfen)
+4. Nicht beantwortbare Code-Fragen zaehlen als "nicht bestaetigt"
 
-Findings die den Self-Review nicht bestehen: stillschweigend verwerfen.
+Findings die die Code-Verifikation nicht bestehen: stillschweigend verwerfen. Severity-Downgrades sind im Output sichtbar (Finding bleibt, in der niedrigeren Severity-Sektion).
 
 Output mit `references/output-template.md` formatieren.
 
@@ -234,12 +260,28 @@ Dieselben Severity-Levels (Blocker/Warnung/Hinweis) verwenden, aber Text-Abschni
 
 Findings mit dem Output-Template praesentieren. Immer auf Deutsch. Lieber schweigen als ein fragwuerdiges Finding melden. "Keine Review-Findings" ist ein vollstaendig akzeptables Ergebnis.
 
+### Zwei-Ebenen-Format
+
+Findings erscheinen so kompakt wie moeglich, Details on-demand:
+
+- **Blocker**: Titel, 1-Zeilen-Begruendung, Aktions-Marker
+- **Warnungen**: einzeilig (`Datei:Zeile — Kurztext`) plus Aktions-Marker
+- **Hinweise**: nur Anzahl plus `Anzeigen? [J/N]`-Prompt
+
+Aktions-Marker pro Finding: `[<N>F]` Fix-Vorschlag, `[<N>V]` Vertiefen, `[<N>I]` Ignorieren. Im Plan/Text-Review (Phase 7) wird `[<N>F]` zu `[<N>Ä]` (Aenderungs-Vorschlag).
+
+**Aktions-Marker sind Hinweise, keine Pflicht.** Der User kann die Marker tippen (`1V`, `1 V`, `1 vertiefen`) oder in Natural Language reagieren ("Finding 1 vertiefen", "vertiefe das erste"). Beide Formen sind gleichwertig zu behandeln. Wenn die Eingabe mehrdeutig ist (z.B. "1 und 2" ohne Aktion): nachfragen, nicht raten.
+
+### Read-Only-Klarstellung
+
+Bei `[F]` / "Fix-Vorschlag" gibst du **nur** einen Diff oder Code-Block im Chat aus. Keine `Edit`, `Write`, oder `Bash`-Aufrufe mit modifizierender Wirkung. Die generelle Read-only-Regel des Plugins bleibt unveraendert.
+
 Nach dem Praesentieren der Findings anbieten:
 ```
 ---
 Optionen:
 1. MR-Beschreibung generieren
-2. Einzelnes Finding vertiefen
+2. Einzelnes Finding vertiefen (oder Aktions-Marker nutzen)
 3. Review abgeschlossen
 ```
 
@@ -250,6 +292,32 @@ Wenn der User Option 1 waehlt:
 - Struktur: Zusammenfassung, Aenderungen, Testhinweise
 - Knapp halten (geeignet fuer eine Merge-Request-Beschreibung)
 - Als kopierbaren Textblock ausgeben
+
+### Stack-Plugin-Hinweis (Footer)
+
+Wenn das Flag `stack_plugin_missing` aus Phase 5 gesetzt ist, **und** wir nicht im Plan/Text-Review-Modus (Phase 7) sind, einen einmaligen Footer-Hinweis am Ende des Outputs ausgeben:
+
+```
+---
+Hinweis: Stack erkannt als <detected_stack>. Fuer tiefere Analyse das
+`<plugin-name>` Plugin installieren (Pattern-Checks, Iron-Law-Judge,
+Idiomatic-Code-Review).
+```
+
+Beispiel fuer Elixir-Stack ohne `elixir-phoenix`:
+
+```
+---
+Hinweis: Stack erkannt als Elixir/Phoenix. Fuer tiefere Analyse das
+`elixir-phoenix` Plugin installieren (Pattern-Checks, Iron-Law-Judge,
+Idiomatic-Code-Review).
+```
+
+Regeln:
+- Genau einmal pro Review-Output, am Ende
+- Nur wenn das Mapping aus Phase 3 existiert UND der Spawn fehlgeschlagen ist
+- Nicht bei Non-Elixir-Stacks (kein Mapping → kein Hinweis)
+- Nicht bei Plan/Text-Review (Phase 7)
 
 ## Fehlerbehandlung
 
